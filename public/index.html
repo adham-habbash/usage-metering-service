@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>QuotaFlow — Usage Metering Demo</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      background: #0b1020;
+      color: #edf2ff;
+      font-synthesis: none;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    header {
+      border-bottom: 1px solid #27334b;
+      padding: 22px max(22px, calc((100% - 1120px) / 2));
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 18px; background: #10182b;
+    }
+    .brand { font-size: 20px; font-weight: 800; letter-spacing: -.5px; }
+    .brand span { color: #7dd3fc; }
+    .eyebrow { font-size: 11px; letter-spacing: 1.8px; color: #8da2c4; text-transform: uppercase; }
+    main { max-width: 1120px; padding: 34px 22px 60px; margin: auto; }
+    h1 { font-size: clamp(30px, 5vw, 46px); letter-spacing: -1.5px; margin: 8px 0 12px; }
+    h2 { font-size: 17px; margin: 0 0 16px; }
+    p { line-height: 1.6; color: #a8b6d1; }
+    .hero { max-width: 790px; margin-bottom: 28px; }
+    .panel, .metric {
+      background: #121b30; border: 1px solid #273650; border-radius: 16px;
+    }
+    .panel { padding: 22px; margin-bottom: 18px; }
+    .metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: 18px 0; }
+    .metric { padding: 20px; min-width: 0; }
+    .metric .label { color: #8da2c4; font-size: 13px; }
+    .metric .value { font-size: clamp(25px, 4vw, 34px); font-weight: 750; margin: 8px 0; letter-spacing: -1px; overflow-wrap: anywhere; }
+    .metric small { color: #9cacc7; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+    button {
+      font: inherit; font-size: 13px; font-weight: 700;
+      border: 1px solid #3c5073; background: #223352; color: white;
+      border-radius: 9px; padding: 12px 15px; cursor: pointer;
+    }
+    button.primary { background: #0e7490; border-color: #22a6c7; }
+    button:hover { filter: brightness(1.15); }
+    button:disabled { opacity: .55; cursor: wait; }
+    .muted { color: #8da2c4; font-size: 13px; }
+    .status { margin-top: 14px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px; color: #c7d5ed; }
+    .user-row, .history-row {
+      padding: 13px 0; border-bottom: 1px solid #273650;
+      display: flex; justify-content: space-between; align-items: center; gap: 14px;
+    }
+    .user-row:last-child, .history-row:last-child { border-bottom: 0; }
+    .name { font-weight: 700; }
+    .sub { color: #8da2c4; font-size: 12px; margin-top: 4px; }
+    .pill {
+      border: 1px solid #3c5073; border-radius: 999px;
+      padding: 5px 9px; color: #c3d7f8; font-size: 11px; white-space: nowrap;
+    }
+    .accepted { color: #86efac; }
+    .rejected { color: #fda4af; }
+    .notice { border-left: 3px solid #38bdf8; padding: 10px 13px; background: #101e33; border-radius: 4px; }
+    #dashboard { display: none; }
+    footer { margin-top: 28px; color: #7485a4; font-size: 12px; text-align: center; }
+    @media (max-width: 720px) {
+      .grid, .metrics { grid-template-columns: 1fr; }
+      header { align-items: flex-start; }
+      .panel { padding: 17px; }
+      .metric { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <div class="brand">Quota<span>Flow</span></div>
+      <div class="muted">Usage metering & quota service</div>
+    </div>
+    <div class="pill">LIVE API DEMO</div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="eyebrow">Interactive product demonstration</div>
+      <h1>Every unit accounted for.</h1>
+      <p>
+        Explore per-user and shared account quotas. Try a request that exceeds
+        a user's limit, consume the shared monthly allowance, and inspect the
+        decision history returned by the backend.
+      </p>
+    </section>
+
+    <section class="panel" id="setup">
+      <h2>Start a demo workspace</h2>
+      <p>
+        This creates a test account, a custom shared quota of 25 units,
+        and two users on different predefined plans. No external account is needed.
+      </p>
+      <div class="actions">
+        <button class="primary" id="createDemo">Create demo workspace</button>
+      </div>
+      <div class="status" id="setupStatus" role="status"></div>
+    </section>
+
+    <section id="dashboard">
+      <div class="notice" id="workspaceInfo">
+        Demo environment. Its API key is kept in this browser tab's session storage.
+      </div>
+
+      <div class="metrics">
+        <div class="metric">
+          <div class="label">Shared monthly allowance</div>
+          <div class="value" id="accountRemaining">—</div>
+          <small id="accountUsed">Loading account usage…</small>
+        </div>
+        <div class="metric">
+          <div class="label">Basic user remaining</div>
+          <div class="value" id="basicRemaining">—</div>
+          <small id="basicUsed">Loading user usage…</small>
+        </div>
+        <div class="metric">
+          <div class="label">Premium user remaining</div>
+          <div class="value" id="premiumRemaining">—</div>
+          <small id="premiumUsed">Loading user usage…</small>
+        </div>
+      </div>
+
+      <div class="grid">
+        <section class="panel">
+          <h2>Run a usage scenario</h2>
+          <p class="muted">
+            Scenarios call the real API and persist their decisions to PostgreSQL.
+          </p>
+          <div class="actions">
+            <button id="userLimit">Try 21 units with Basic</button>
+            <button class="primary" id="consumeFive">Consume 5 with Premium</button>
+            <button id="refresh">Refresh usage & history</button>
+          </div>
+          <div class="status" id="decisionStatus" role="status"></div>
+        </section>
+
+        <section class="panel">
+          <h2>Users & assigned plans</h2>
+          <div id="usersList" class="muted">Loading users…</div>
+        </section>
+
+        <section class="panel">
+          <h2>Recent request history</h2>
+          <div id="historyList" class="muted">Loading history…</div>
+        </section>
+
+        <section class="panel">
+          <h2>What this demonstrates</h2>
+          <p class="muted">
+            <strong>Per-request quota:</strong> the Basic plan allows at most
+            20 units per request, so a 21-unit request should be rejected.
+          </p>
+          <p class="muted">
+            <strong>Shared quota:</strong> five-unit Premium actions can use
+            the workspace's 25-unit allowance. Once insufficient units remain,
+            the entire next request is rejected without a partial deduction.
+          </p>
+          <p class="muted">
+            <strong>Idempotency:</strong> every action receives a unique request ID.
+            The automated test suite also verifies safe retries with the same ID.
+          </p>
+        </section>
+      </div>
+      <footer>Demo data persists in PostgreSQL. This browser interface is for local evaluation, not production authentication.</footer>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      const KEY_STORAGE = "quotaflow_demo_api_key";
+      const USERS_STORAGE = "quotaflow_demo_users";
+      const $ = (id) => document.getElementById(id);
+
+      let apiKey = sessionStorage.getItem(KEY_STORAGE) || "";
+      let users = [];
+
+      try {
+        users = JSON.parse(sessionStorage.getItem(USERS_STORAGE) || "[]");
+      } catch {
+        users = [];
+      }
+
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, (character) => ({
+          "&": "&amp;", "<": "&lt;", ">": "&gt;",
+          '"': "&quot;", "'": "&#039;"
+        })[character]);
+      }
+
+      function setStatus(id, text) {
+        $(id).textContent = text;
+      }
+
+      async function api(path, { method = "GET", body, auth = true } = {}) {
+        const headers = {};
+        if (body !== undefined) headers["Content-Type"] = "application/json";
+        if (auth && apiKey) headers["x-api-key"] = apiKey;
+
+        const response = await fetch(path, {
+          method,
+          headers,
+          ...(body !== undefined ? { body: JSON.stringify(body) } : {})
+        });
+
+        const raw = await response.text();
+        let data = {};
+        try { data = raw ? JSON.parse(raw) : {}; }
+        catch { throw new Error("The server returned an invalid response."); }
+
+        if (!response.ok) {
+          throw new Error(data?.error?.message || `Request failed (${response.status})`);
+        }
+        return data;
+      }
+
+      function showDashboard() {
+        $("setup").style.display = "none";
+        $("dashboard").style.display = "block";
+      }
+
+      async function createDemo() {
+        $("createDemo").disabled = true;
+        setStatus("setupStatus", "Creating account, plans, and demo users…");
+
+        try {
+          const accountResult = await api("/api/accounts", {
+            method: "POST",
+            auth: false,
+            body: { name: `QuotaFlow Demo ${new Date().toISOString()}` }
+          });
+
+          apiKey = accountResult.apiKey;
+          sessionStorage.setItem(KEY_STORAGE, apiKey);
+
+          const planResult = await api("/api/plans");
+          const plans = planResult.plans;
+          const basic = plans.find((plan) => plan.name === "Basic" && plan.scope === "user");
+          const premium = plans.find((plan) => plan.name === "Premium" && plan.scope === "user");
+
+          if (!basic || !premium) throw new Error("The predefined user plans are unavailable.");
+
+          const customPlan = await api("/api/plans", {
+            method: "POST",
+            body: {
+              name: `Demo Shared Quota ${crypto.randomUUID().slice(0, 8)}`,
+              scope: "account",
+              monthlyAllowance: 25,
+              maxUnitsPerRequest: 25
+            }
+          });
+
+          await api("/api/account/plan", {
+            method: "PATCH",
+            body: { planId: customPlan.plan.id }
+          });
+
+          const basicUser = await api("/api/users", {
+            method: "POST",
+            body: {
+              externalUserId: `demo-basic-${crypto.randomUUID()}`,
+              displayName: "Alex — Basic",
+              planId: basic.id
+            }
+          });
+
+          const premiumUser = await api("/api/users", {
+            method: "POST",
+            body: {
+              externalUserId: `demo-premium-${crypto.randomUUID()}`,
+              displayName: "Sam — Premium",
+              planId: premium.id
+            }
+          });
+
+          users = [
+            { id: basicUser.user.id, name: basicUser.user.displayName, plan: "Basic" },
+            { id: premiumUser.user.id, name: premiumUser.user.displayName, plan: "Premium" }
+          ];
+
+          sessionStorage.setItem(USERS_STORAGE, JSON.stringify(users));
+          showDashboard();
+          setStatus("decisionStatus", "Demo workspace ready. Try the Basic limit, then use Premium actions until the shared quota is exhausted.");
+          await refreshDashboard();
+        } catch (error) {
+          setStatus("setupStatus", error.message || "Failed to create the demo workspace.");
+        } finally {
+          $("createDemo").disabled = false;
+        }
+      }
+
+      async function refreshDashboard() {
+        try {
+          const [accountResult, usageResult, historyResult] = await Promise.all([
+            api("/api/account"),
+            api("/api/usage"),
+            api("/api/history?page=1&pageSize=8")
+          ]);
+
+          $("workspaceInfo").textContent =
+            `Workspace: ${accountResult.account.name} · Current month: ${usageResult.month}`;
+
+          $("accountRemaining").textContent = Number(usageResult.account.remainingUnits).toLocaleString();
+          $("accountUsed").textContent =
+            `${Number(usageResult.account.consumedUnits).toLocaleString()} used of ${Number(usageResult.account.plan.monthlyAllowance).toLocaleString()}`;
+
+          for (const [planName, prefix] of [["Basic", "basic"], ["Premium", "premium"]]) {
+            const user = usageResult.users.find((item) => item.plan.name === planName);
+            $(prefix + "Remaining").textContent = user
+              ? Number(user.remainingUnits).toLocaleString()
+              : "—";
+            $(prefix + "Used").textContent = user
+              ? `${Number(user.consumedUnits).toLocaleString()} used of ${Number(user.plan.monthlyAllowance).toLocaleString()}`
+              : "No user found";
+          }
+
+          $("usersList").innerHTML = usageResult.users.map((user) => `
+            <div class="user-row">
+              <div>
+                <div class="name">${escapeHtml(user.displayName)}</div>
+                <div class="sub">${escapeHtml(user.externalUserId)}</div>
+              </div>
+              <div class="pill">${escapeHtml(user.plan.name)}</div>
+            </div>
+          `).join("") || "No users yet.";
+
+          $("historyList").innerHTML = historyResult.items.map((item) => {
+            const accepted = item.status === "accepted";
+            const detail = item.rejection
+              ? `${item.rejection.scope}: ${item.rejection.rule}`
+              : "Consumption accepted";
+            return `
+              <div class="history-row">
+                <div>
+                  <div class="name ${accepted ? "accepted" : "rejected"}">
+                    ${accepted ? "ACCEPTED" : "REJECTED"} · ${Number(item.units)} units
+                  </div>
+                  <div class="sub">${escapeHtml(detail)}</div>
+                </div>
+                <div class="sub">${escapeHtml(new Date(item.processedAt).toLocaleTimeString())}</div>
+              </div>
+            `;
+          }).join("") || "No requests yet.";
+
+          setStatus("decisionStatus", "Usage and request history refreshed.");
+        } catch (error) {
+          setStatus("decisionStatus", error.message || "Unable to refresh dashboard.");
+        }
+      }
+
+      async function consume(userPlan, units) {
+        const user = users.find((item) => item.plan === userPlan);
+        if (!user) {
+          setStatus("decisionStatus", `The ${userPlan} demo user was not found.`);
+          return;
+        }
+
+        $("userLimit").disabled = true;
+        $("consumeFive").disabled = true;
+
+        try {
+          const result = await api("/api/consume", {
+            method: "POST",
+            body: {
+              userId: user.id,
+              units,
+              requestId: crypto.randomUUID()
+            }
+          });
+
+          if (result.accepted) {
+            setStatus(
+              "decisionStatus",
+              `ACCEPTED — ${units} units consumed.\nAccount remaining: ${result.usage.account.remainingUnits}\nUser remaining: ${result.usage.user.remainingUnits}`
+            );
+          } else {
+            setStatus(
+              "decisionStatus",
+              `REJECTED — ${result.rejection.scope} rule: ${result.rejection.rule}\n${result.rejection.message}\nNo units were consumed.`
+            );
+          }
+
+          await refreshDashboard();
+        } catch (error) {
+          setStatus("decisionStatus", error.message || "Consumption request failed.");
+        } finally {
+          $("userLimit").disabled = false;
+          $("consumeFive").disabled = false;
+        }
+      }
+
+      $("createDemo").addEventListener("click", createDemo);
+      $("userLimit").addEventListener("click", () => consume("Basic", 21));
+      $("consumeFive").addEventListener("click", () => consume("Premium", 5));
+      $("refresh").addEventListener("click", refreshDashboard);
+
+      if (apiKey && users.length === 2) {
+        showDashboard();
+        refreshDashboard();
+      }
+    })();
+  </script>
+</body>
+</html>
