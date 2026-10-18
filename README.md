@@ -247,6 +247,81 @@ docker compose down
 - `compose.yaml` - Docker Compose configuration.
 - `Dockerfile` - Application container configuration.
 
+## Performance Testing
+
+The project includes a reproducible HTTP load test:
+
+```bash
+docker compose up --build -d
+npm run benchmark
+```
+
+Run the benchmark from the project directory while the API and PostgreSQL
+services are healthy and reachable at `http://127.0.0.1:8080`.
+
+### Default workload
+
+- Requests: 1,000
+- Concurrency: 25 workers
+- Units per request: 1
+- Isolation: a dedicated account and user are created for each run
+- Measurement: elapsed time from sending a request until its complete response
+  body is received
+- Data integrity: the script checks that persisted account and user usage
+  matches the expected total after the workload
+
+The script saves a JSON report in `benchmark-results/`.
+
+### Configuration
+
+The workload can be adjusted with environment variables:
+
+```bash
+BENCH_REQUESTS=500 BENCH_CONCURRENCY=10 BENCH_UNITS=1 npm run benchmark
+```
+
+Supported variables:
+
+- `BASE_URL`: API base URL; defaults to `http://127.0.0.1:8080`.
+- `BENCH_REQUESTS`: number of requests; defaults to `1000`.
+- `BENCH_CONCURRENCY`: number of concurrent workers; defaults to `25`.
+- `BENCH_UNITS`: units consumed per request; defaults to `1`.
+
+### Recorded results
+
+A successful run on this development environment on 2026-10-18 processed
+1,000 requests with 25 workers and one unit per request:
+
+| Metric | Result |
+| --- | ---: |
+| Completed requests | 1,000 |
+| Accepted requests | 1,000 |
+| Request errors | 0 |
+| Throughput | 105.83 requests/second |
+| Median latency | 222.05 ms |
+| P95 latency | 327.52 ms |
+| P99 latency | 511.11 ms |
+| Account usage matched expected total | Yes |
+| User usage matched expected total | Yes |
+
+These figures are measurements from one local development run, not a production
+capacity guarantee. Results depend on the machine, Docker configuration,
+database state, and workload.
+
+An earlier run on 2026-10-16 recorded five request errors (two HTTP 500 and
+three HTTP 503). Later runs succeeded, including the integrity-checked run
+above. This demonstrates why repeated runs and error counts matter; the
+earlier failure should not be treated as a successful benchmark.
+
+### What this test tells us
+
+The benchmark exercises concurrent consumption requests that share an account
+quota, then verifies persisted usage. The recorded successful run confirms
+that all 1,000 requested units were reflected in both account and user usage.
+It is a focused load test, not a full production stress test: it does not by
+itself establish behavior under prolonged traffic, multiple machines, or
+production-scale workloads.
+
 ## Continuous Integration
 
 GitHub Actions runs type checking, linting, tests, and the production build when changes are pushed or a pull request is opened.
