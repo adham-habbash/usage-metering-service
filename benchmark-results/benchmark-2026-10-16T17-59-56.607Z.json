@@ -1,0 +1,66 @@
+{
+  "runId": "324b05e8-b6a5-46ce-8a8a-108887edd67f",
+  "baseUrl": "http://127.0.0.1:8080",
+  "startedAt": "2026-10-16T17:59:45.645Z",
+  "finishedAt": "2026-10-16T17:59:56.605Z",
+  "configuration": {
+    "requests": 1000,
+    "concurrency": 25,
+    "unitsPerRequest": 1
+  },
+  "results": {
+    "completed": 1000,
+    "accepted": 995,
+    "rejected": 0,
+    "errors": 5,
+    "httpStatusCounts": {
+      "200": 995,
+      "500": 2,
+      "503": 3
+    },
+    "durationSeconds": 10.96,
+    "requestsPerSecond": 91.24,
+    "acceptedRequestsPerSecond": 90.78,
+    "latencyMs": {
+      "min": 69.83,
+      "median": 206.21,
+      "p95": 405.3,
+      "p99": 2311.32,
+      "max": 2314.04
+    }
+  },
+  "sampleErrors": [
+    {
+      "request": 925,
+      "status": 503,
+      "message": "Account authentication is temporarily unavailable."
+    },
+    {
+      "request": 923,
+      "status": 500,
+      "message": "The usage decision could not be completed."
+    },
+    {
+      "request": 926,
+      "status": 503,
+      "message": "Account authentication is temporarily unavailable."
+    },
+    {
+      "request": 924,
+      "status": 500,
+      "message": "The usage decision could not be completed."
+    },
+    {
+      "request": 927,
+      "status": 503,
+      "message": "Account authentication is temporarily unavailable."
+    }
+  ],
+  "passed": false,
+  "notes": [
+    "Latency measures each HTTP request from dispatch until the response body was received.",
+    "The workload uses one account and one user, so requests contend on the shared account quota lock.",
+    "Benchmark account and request history are persisted in PostgreSQL for auditability.",
+    "Results depend on the host machine, Docker configuration, and workload settings."
+  ]
+}

@@ -5,7 +5,7 @@ const connectionString = process.env.DATABASE_URL;
 
 export const pool = new Pool({
   ...(connectionString ? { connectionString } : {}),
-  max: 20,
+  max: 40,
   idleTimeoutMillis: 30_000,
   connectionTimeoutMillis: 2_000,
 });

@@ -1,0 +1,45 @@
+{
+  "runId": "029aef6b-e091-4d01-a3ce-d73ba2967030",
+  "baseUrl": "http://127.0.0.1:8080",
+  "startedAt": "2026-10-18T13:38:55.833Z",
+  "finishedAt": "2026-10-18T13:39:05.281Z",
+  "configuration": {
+    "requests": 1000,
+    "concurrency": 25,
+    "unitsPerRequest": 1
+  },
+  "results": {
+    "completed": 1000,
+    "accepted": 1000,
+    "rejected": 0,
+    "errors": 0,
+    "httpStatusCounts": {
+      "200": 1000
+    },
+    "dataIntegrity": {
+      "expectedUnits": 1000,
+      "accountConsumedUnits": 1000,
+      "userConsumedUnits": 1000,
+      "accountUsageMatchesExpected": true,
+      "userUsageMatchesExpected": true
+    },
+    "durationSeconds": 9.449,
+    "requestsPerSecond": 105.83,
+    "acceptedRequestsPerSecond": 105.83,
+    "latencyMs": {
+      "min": 17.93,
+      "median": 222.05,
+      "p95": 327.52,
+      "p99": 511.11,
+      "max": 529.15
+    }
+  },
+  "sampleErrors": [],
+  "passed": true,
+  "notes": [
+    "Latency measures each HTTP request from dispatch until the response body was received.",
+    "The workload uses one account and one user, so requests contend on the shared account quota lock.",
+    "Benchmark account and request history are persisted in PostgreSQL for auditability.",
+    "Results depend on the host machine, Docker configuration, and workload settings."
+  ]
+}
