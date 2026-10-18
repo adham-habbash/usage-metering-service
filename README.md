@@ -328,4 +328,4 @@ GitHub Actions runs type checking, linting, tests, and the production build when
 
 ## License
 
-Educational final project.
+Final Project
